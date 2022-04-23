@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from api.v1.api_utils import Page
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
@@ -43,17 +44,6 @@ def sort_param(sort: Optional[str] = Query(SortType.default.value["sort"], regex
     return SortType.default.value["sort"]
 
 
-class Page(object):
-    def __init__(
-        self,
-        size: int = Query(10, alias="page[size]", ge=1),
-        number: int = Query(0, alias="page[number]", ge=0),
-    ) -> None:
-
-        self.number = number
-        self.size = size
-
-
 @router.get("/{film_id}/", response_model=Film)
 async def film_details(
     film_id: str,
@@ -85,7 +75,7 @@ async def films(
 ) -> List[Film]:
 
     films_r = await commons.film_service.get_films(sort, page.size, page.number, genre)
-    if not films:
+    if not films_r:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
 
     return [
@@ -110,7 +100,7 @@ async def films_search(
     query: str = Query(..., min_length=2),
 ) -> List[Film]:
 
-    films = await commons.film_service.get_films_search(query, page.size, page.number)
+    films = await commons.film_service.get_films_search(query, page.number, page.size)
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
 

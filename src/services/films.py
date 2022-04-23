@@ -12,6 +12,7 @@ from db.redis import get_redis
 from fastapi.exceptions import HTTPException
 from fastapi.params import Depends
 from models.film import Film
+from services.service_utils import get_es_from_value
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -37,28 +38,20 @@ class FilmService(object):
         size: int = 1,
         page: int = 0,
         genre: Optional[uuid.UUID] = None,
-    ) -> List[Film]:
+    ) -> Optional[List[Film]]:
         films = []
         query = {"match_all": {}}
 
         if genre:
             query = {"nested": {"path": "genre", "query": {"term": {"genre.uuid": genre}}}}
 
-        # https://www.elastic.co/guide/en/elasticsearch/reference/8.1/paginate-search-results.html
-        if size + page * size > 10000:
-            raise HTTPException(
-                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                detail=[
-                    {
-                        "loc": ["query", "page[number] and page[size]"],
-                        "msg": "page[number]+page[size]*page[number] more then 10000",
-                        "type": "value_error",
-                        "ctx": {"limit_value": 10000},
-                    },
-                ],
-            )
-        from_ = self._get_from_value(page, size)
-        matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
+        from_ = get_es_from_value(page, size)
+
+        try:
+            matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
+        except NotFoundError:
+            return None
+
         for doc in matched_docs["hits"]["hits"]:
             films.append(Film(**doc["_source"]))
         return films
@@ -66,14 +59,17 @@ class FilmService(object):
     async def get_films_search(
         self,
         search_query: str,
-        size: int = 1,
         page: int = 0,
-    ) -> List[Film]:
+        size: int = 1,
+    ) -> Optional[List[Film]]:
         films = []
         query = {"multi_match": {"query": search_query, "fields": ["title", "description"]}}
 
-        from_ = self._get_from_value(page, size)
-        matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
+        from_ = get_es_from_value(page, size)
+        try:
+            matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
+        except NotFoundError:
+            return None
         for doc in matched_docs["hits"]["hits"]:
             films.append(Film(**doc["_source"]))
         return films
@@ -94,22 +90,6 @@ class FilmService(object):
 
     async def _put_film_cache(self, film: Film):
         await self.redis.set(str(film.uuid), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
-
-    def _get_from_value(self, page: int, size: int) -> int:
-        # https://www.elastic.co/guide/en/elasticsearch/reference/8.1/paginate-search-results.html
-        if size + page * size > 10000:
-            raise HTTPException(
-                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                detail=[
-                    {
-                        "loc": ["query", "page[number] and page[size]"],
-                        "msg": "page[number]+page[size]*page[number] more then 10000",
-                        "type": "value_error",
-                        "ctx": {"limit_value": 10000},
-                    },
-                ],
-            )
-        return page * size
 
 
 @lru_cache()
