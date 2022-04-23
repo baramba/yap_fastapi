@@ -21,8 +21,16 @@ class CommParams(object):
         self.person_service = person_service
 
 
-@router.get("/search")
-async def persons(
+@router.get("/{person_id}/")
+async def person_by_id(person_id: uuid.UUID, commons: CommParams = Depends()) -> Optional[Person]:
+    person = await commons.person_service.get_person(person_id)
+    if not person:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="person not found")
+    return person
+
+
+@router.get("/search", response_model=List[Person])
+async def persons_search(
     commons: CommParams = Depends(), page: Page = Depends(), query: str = Query(..., min_length=2)
 ) -> Optional[List[Person]]:
     persons_ = await commons.person_service.get_persons_search(query, page.size, page.number)

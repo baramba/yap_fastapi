@@ -1,3 +1,4 @@
+import uuid
 from functools import lru_cache
 from typing import List, Optional
 
@@ -17,8 +18,18 @@ class PersonService(object):
         self.redis = redis
         self.elastic = elastic
 
+    async def get_person(self, person_id: uuid.UUID) -> Optional[Person]:
+        return await self._get_person_es(str(person_id))
+
     async def get_persons_search(self, search_query: str, size: int, page: int) -> Optional[List[Person]]:
         return await self._get_person_es_search(search_query, page, size)
+
+    async def _get_person_es(self, person_id: str):
+        try:
+            doc = await self.elastic.get(index="persons", id=person_id)
+        except NotFoundError:
+            return None
+        return Person(**doc["_source"])
 
     async def _get_person_es_search(self, search_query: str, page: int, size: int) -> Optional[List[Person]]:
         from_ = get_es_from_value(page, size)
