@@ -14,10 +14,20 @@ class Film(BaseModel):
     imdb_rating: float
     title: str
     description: Optional[str]
-    genres: Optional[List[Dict]]
+    genre: Optional[List[Dict]]
     directors: Optional[List[Dict]]
     actors: Optional[List[Dict]]
     writers: Optional[List[Dict]]
+
+    class Config(object):
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
+
+
+class FilmBrief(BaseModel):
+    uuid: uuid.UUID
+    imdb_rating: float
+    title: str
 
     class Config(object):
         json_loads = orjson.loads

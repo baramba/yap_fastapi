@@ -22,7 +22,7 @@ class FilmService(object):
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, film_id: str) -> Optional[Film]:
+    async def get_by_id(self, film_id: uuid.UUID) -> Optional[Film]:
         film = await self._film_cache(str(film_id))
         if not film:
             film = await self._get_film_es(film_id)

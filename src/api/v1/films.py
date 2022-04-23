@@ -10,22 +10,10 @@ from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
+from models.film import Film, FilmBrief
 from services.films import FilmService, get_film_service
 
 router = APIRouter()
-
-
-class Film(BaseModel):
-    """Response model for Film."""
-
-    uuid: uuid.UUID
-    title: str
-    imdb_rating: float
-    description: Optional[str]
-    genre: Optional[List[Dict]]
-    actors: Optional[List[Dict]]
-    writers: Optional[List[Dict]]
-    directors: Optional[List[Dict]]
 
 
 class CommParams(object):
@@ -44,9 +32,9 @@ def sort_param(sort: Optional[str] = Query(SortType.default.value["sort"], regex
     return SortType.default.value["sort"]
 
 
-@router.get("/{film_id}/", response_model=Film)
-async def film_details(
-    film_id: str,
+@router.get("/{film_id}", response_model=Film)
+async def film_by_id(
+    film_id: uuid.UUID,
     commons: CommParams = Depends(),
 ) -> Film:
 
@@ -59,61 +47,51 @@ async def film_details(
         title=film.title,
         imdb_rating=film.imdb_rating,
         description=film.description,
-        genre=film.genres,
+        genre=film.genre,
         actors=film.actors,
         writers=film.writers,
         directors=film.directors,
     )
 
 
-@router.get("/", response_model=List[Film])
-async def films(
+@router.get("/", response_model=List[FilmBrief])
+async def films_main_page(
     sort: str = Depends(sort_param),
     commons: CommParams = Depends(),
     page: Page = Depends(),
     genre: uuid.UUID = Query(None, alias="filter[genre]"),
-) -> List[Film]:
+) -> List[FilmBrief]:
 
     films_r = await commons.film_service.get_films(sort, page.size, page.number, genre)
     if not films_r:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
 
     return [
-        Film(
+        FilmBrief(
             uuid=film.uuid,
             title=film.title,
             imdb_rating=film.imdb_rating,
-            description=film.description,
-            genre=film.genres,
-            actors=film.actors,
-            writers=film.writers,
-            directors=film.directors,
         )
         for film in films_r
     ]
 
 
-@router.get("/search", response_model=List[Film])
+@router.get("/search", response_model=List[FilmBrief])
 async def films_search(
     commons: CommParams = Depends(),
     page: Page = Depends(),
     query: str = Query(..., min_length=2),
-) -> List[Film]:
+) -> List[FilmBrief]:
 
     films = await commons.film_service.get_films_search(query, page.number, page.size)
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
 
     return [
-        Film(
+        FilmBrief(
             uuid=film.uuid,
             title=film.title,
             imdb_rating=film.imdb_rating,
-            description=film.description,
-            genre=film.genres,
-            actors=film.actors,
-            writers=film.writers,
-            directors=film.directors,
         )
         for film in films
     ]
