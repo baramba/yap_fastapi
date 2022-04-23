@@ -37,7 +37,7 @@ class FilmService(object):
         size: int = 1,
         page: int = 0,
         genre: Optional[uuid.UUID] = None,
-    ) -> Optional[List[Film]]:
+    ) -> List[Film]:
         films = []
         query = {"match_all": {}}
 
@@ -57,11 +57,26 @@ class FilmService(object):
                     },
                 ],
             )
-        from_ = page * size
+        from_ = self._get_from_value(page, size)
         matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
         for doc in matched_docs["hits"]["hits"]:
             films.append(Film(**doc["_source"]))
-        return films or None
+        return films
+
+    async def get_films_search(
+        self,
+        search_query: str,
+        size: int = 1,
+        page: int = 0,
+    ) -> List[Film]:
+        films = []
+        query = {"multi_match": {"query": search_query, "fields": ["title", "description"]}}
+
+        from_ = self._get_from_value(page, size)
+        matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
+        for doc in matched_docs["hits"]["hits"]:
+            films.append(Film(**doc["_source"]))
+        return films
 
     async def _get_film_es(self, film_id: str) -> Optional[Film]:
         try:
@@ -75,11 +90,26 @@ class FilmService(object):
         if not film_row:
             return None
 
-        film = Film.parse_raw(film_row)
-        return film
+        return Film.parse_raw(film_row)
 
     async def _put_film_cache(self, film: Film):
-        await self.redis.set(str(film.id), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(str(film.uuid), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
+
+    def _get_from_value(self, page: int, size: int) -> int:
+        # https://www.elastic.co/guide/en/elasticsearch/reference/8.1/paginate-search-results.html
+        if size + page * size > 10000:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                detail=[
+                    {
+                        "loc": ["query", "page[number] and page[size]"],
+                        "msg": "page[number]+page[size]*page[number] more then 10000",
+                        "type": "value_error",
+                        "ctx": {"limit_value": 10000},
+                    },
+                ],
+            )
+        return page * size
 
 
 @lru_cache()

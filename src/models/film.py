@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional
+from typing import Dict, List, Optional
 
 import orjson
 from pydantic import BaseModel
@@ -13,15 +13,11 @@ class Film(BaseModel):
     uuid: uuid.UUID
     imdb_rating: float
     title: str
-    description: Optional[str] = ""
-    genres: Optional[tuple] = tuple()
-    director: list = list()
-    actors: Optional[tuple] = tuple()
-    writers: Optional[tuple] = tuple()
-    actors_names: list = list()
-    writers_names: list = list()
-    actors_id: list = []
-    writers_id: list = []
+    description: Optional[str]
+    genres: Optional[List[Dict]]
+    directors: Optional[List[Dict]]
+    actors: Optional[List[Dict]]
+    writers: Optional[List[Dict]]
 
     class Config(object):
         json_loads = orjson.loads
