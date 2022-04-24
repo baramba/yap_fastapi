@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from app.api.v1.api_utils import Page
-from app.models.film import Film, FilmBrief
-from app.services.films import FilmService, get_film_service
+from api.v1.api_utils import Page
+from models.film import Film, FilmBrief
+from services.films import FilmService, get_film_service
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends

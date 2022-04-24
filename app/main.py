@@ -2,9 +2,9 @@ import aioredis
 import uvicorn
 from elasticsearch import AsyncElasticsearch
 
-from app.api.v1 import films, genres, persons
-from app.core import config
-from app.db import elastic, redis
+from api.v1 import films, genres, persons
+from core import config
+from db import elastic, redis
 from fastapi.applications import FastAPI
 from fastapi.responses import ORJSONResponse
 

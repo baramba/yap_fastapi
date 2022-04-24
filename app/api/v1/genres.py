@@ -5,8 +5,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from app.models.genre import Genre
-from app.services.genres import GenreService, get_genre_service
+from models.genre import Genre
+from services.genres import GenreService, get_genre_service
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends

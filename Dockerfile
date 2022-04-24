@@ -2,7 +2,7 @@ FROM python:3.9-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ARG WORKDIR=/code
-ARG SRC_CODE_DIR=./src
+ARG SRC_CODE_DIR=./app
 ARG POETRY_T=pyproject.toml
 ARG POETRY_L=poetry.lock
 ARG USER=app
@@ -25,9 +25,9 @@ RUN pip install --upgrade pip && pip install poetry==1.1.13
 COPY --chown=${USER}:${GROUP} ./${POETRY_T} ./
 COPY --chown=${USER}:${GROUP} ./${POETRY_L} ./
 
-# poetry config virtualenvs.create false && \
 RUN poetry install --no-dev --no-interaction --no-ansi
 
 COPY --chown=${USER}:${GROUP} ${SRC_CODE_DIR} ./
+COPY --chown=${USER}:${GROUP} ./gunicorn.conf.py ./
 
 CMD ["poetry", "run", "gunicorn", "main:app"]

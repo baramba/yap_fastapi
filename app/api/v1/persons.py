@@ -6,10 +6,10 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from app.api.v1.api_utils import Page
-from app.models.film import FilmBrief
-from app.models.person import Person
-from app.services.persons import PersonService, get_person_service
+from api.v1.api_utils import Page
+from models.film import FilmBrief
+from models.person import Person
+from services.persons import PersonService, get_person_service
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
