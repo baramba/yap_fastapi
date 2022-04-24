@@ -5,10 +5,10 @@ from aioredis import Redis
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import NotFoundError
 
-from db.elastic import get_elastic
-from db.redis import get_redis
+from app.db.elastic import get_elastic
+from app.db.redis import get_redis
 from fastapi.params import Depends
-from models.genre import Genre
+from app.models.genre import Genre
 
 
 class GenreService(object):

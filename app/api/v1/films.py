@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from api.v1.api_utils import Page
+from app.api.v1.api_utils import Page
+from app.models.film import Film, FilmBrief
+from app.services.films import FilmService, get_film_service
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
-from models.film import Film, FilmBrief
-from services.films import FilmService, get_film_service
 
 router = APIRouter()
 
@@ -40,8 +40,8 @@ async def films_main_page(
     genre: uuid.UUID = Query(None, alias="filter[genre]"),
 ) -> List[FilmBrief]:
 
-    films_r = await commons.film_service.get_films(sort, page.size, page.number, genre)
-    if not films_r:
+    films = await commons.film_service.get_films(sort, page.size, page.number, genre)
+    if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
 
     return [
@@ -50,7 +50,7 @@ async def films_main_page(
             title=film.title,
             imdb_rating=film.imdb_rating,
         )
-        for film in films_r
+        for film in films
     ]
 
 
@@ -85,13 +85,4 @@ async def film_by_id(
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
 
-    return Film(
-        uuid=film.uuid,
-        title=film.title,
-        imdb_rating=film.imdb_rating,
-        description=film.description,
-        genre=film.genre,
-        actors=film.actors,
-        writers=film.writers,
-        directors=film.directors,
-    )
+    return film

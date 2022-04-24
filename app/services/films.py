@@ -7,12 +7,12 @@ from aioredis import Redis
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import NotFoundError
 
-from db.elastic import get_elastic
-from db.redis import get_redis
+from app.db.elastic import get_elastic
+from app.db.redis import get_redis
 from fastapi.exceptions import HTTPException
 from fastapi.params import Depends
-from models.film import Film
-from services.service_utils import get_es_from_value
+from app.models.film import Film
+from app.services.service_utils import get_es_from_value
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
