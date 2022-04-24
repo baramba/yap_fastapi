@@ -32,28 +32,6 @@ def sort_param(sort: Optional[str] = Query(SortType.default.value["sort"], regex
     return SortType.default.value["sort"]
 
 
-@router.get("/{film_id}", response_model=Film)
-async def film_by_id(
-    film_id: uuid.UUID,
-    commons: CommParams = Depends(),
-) -> Film:
-
-    film = await commons.film_service.get_by_id(film_id)
-    if not film:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
-
-    return Film(
-        uuid=film.uuid,
-        title=film.title,
-        imdb_rating=film.imdb_rating,
-        description=film.description,
-        genre=film.genre,
-        actors=film.actors,
-        writers=film.writers,
-        directors=film.directors,
-    )
-
-
 @router.get("/", response_model=List[FilmBrief])
 async def films_main_page(
     sort: str = Depends(sort_param),
@@ -95,3 +73,25 @@ async def films_search(
         )
         for film in films
     ]
+
+
+@router.get("/{film_id}", response_model=Film)
+async def film_by_id(
+    film_id: uuid.UUID,
+    commons: CommParams = Depends(),
+) -> Film:
+
+    film = await commons.film_service.get_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
+
+    return Film(
+        uuid=film.uuid,
+        title=film.title,
+        imdb_rating=film.imdb_rating,
+        description=film.description,
+        genre=film.genre,
+        actors=film.actors,
+        writers=film.writers,
+        directors=film.directors,
+    )

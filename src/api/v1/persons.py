@@ -23,14 +23,6 @@ class CommParams(object):
         self.person_service = person_service
 
 
-@router.get("/{person_id}")
-async def person_by_id(person_id: uuid.UUID, commons: CommParams = Depends()) -> Optional[Person]:
-    person = await commons.person_service.get_person(person_id)
-    if not person:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="person not found")
-    return person
-
-
 @router.get(
     "/{person_id}/film", response_model=List[FilmBrief], deprecated=True, description="used for old android devices"
 )
@@ -50,4 +42,12 @@ async def persons_search(
     person = await commons.person_service.get_persons_search(query, page.size, page.number)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="persons not found")
+    return person
+
+
+@router.get("/{person_id}")
+async def person_by_id(person_id: uuid.UUID, commons: CommParams = Depends()) -> Optional[Person]:
+    person = await commons.person_service.get_person(person_id)
+    if not person:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="person not found")
     return person
