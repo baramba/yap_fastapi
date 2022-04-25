@@ -7,13 +7,13 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from api.v1.api_utils import Page
+from models.film import FilmBrief
+from models.person import Person
+from services.persons import PersonService, get_person_service
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.routing import APIRouter
-from models.film import FilmBrief
-from models.person import Person
-from services.persons import PersonService, get_person_service
 
 router = APIRouter()
 

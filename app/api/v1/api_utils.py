@@ -1,6 +1,7 @@
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 
+
 class Page(object):
     def __init__(
         self,

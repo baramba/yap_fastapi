@@ -9,10 +9,10 @@ from elasticsearch.exceptions import NotFoundError
 
 from db.elastic import get_elastic
 from db.redis import get_redis
-from fastapi.params import Depends
 from models.film import FilmBrief
 from models.person import Person
 from services.service_utils import get_es_from_value
+from fastapi.params import Depends
 
 
 class PersonService(object):
