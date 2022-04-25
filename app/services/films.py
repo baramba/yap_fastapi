@@ -101,25 +101,24 @@ class FilmService(object):
         film_row = await self.redis.get('-'.join(['movies', film_id]))
         if not film_row:
             return None
-
         logging.info('Get from cache')
         return Film.parse_raw(film_row)
-
-    async def _list_films_cache(self, list_name: str) -> Optional[List[Film]]:
-        films_row = await self.redis.lrange(str(list_name), 0, -1)
-        if not films_row:
-            return None
-
-        logging.info('Get list from cache')
-        return [Film.parse_raw(film_row) for film_row in films_row]
 
     async def _put_film_cache(self, film: Film):
         logging.info('Save film to cache')
         await self.redis.set('-'.join(['movies', str(film.uuid)]), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
 
+    async def _list_films_cache(self, list_name: str) -> Optional[List[Film]]:
+        films_row = await self.redis.lrange(list_name, 0, -1)
+        if not films_row:
+            return None
+        logging.info('Get list from cache')
+        return [Film.parse_raw(film_row) for film_row in films_row]
+
     async def _put_list_films_cache(self, list_name: str, films: List[Film]):
         logging.info('Save films list to cache')
         await self.redis.lpush(list_name, *[film.json() for film in films])
+        await self.redis.expire(list_name, FILM_CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()

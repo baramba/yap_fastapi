@@ -25,7 +25,8 @@ class GenreService(object):
         query = {"match_all": {}}
 
         cache_key = '-'.join(['genres', json.dumps(query)])
-        genres = self._list_genre_cache(cache_key)
+
+        genres = await self._list_genre_cache(cache_key)
         if not genres:
             try:
                 matched = await self.elastic.search(index="genres", query=query)
