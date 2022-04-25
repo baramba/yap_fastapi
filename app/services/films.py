@@ -47,9 +47,9 @@ class FilmService(object):
         if genre:
             query = {"nested": {"path": "genre", "query": {"term": {"genre.uuid": genre}}}}
 
-        chache_key = '-'.join([json.dumps(query), sort, str(page), str(size)])
+        cache_key = '-'.join(['movies', json.dumps(query), sort, str(page), str(size)])
 
-        films = await self._list_films_cache(chache_key)
+        films = await self._list_films_cache(cache_key)
         if not films:
             films = []
             from_ = get_es_from_value(page, size)
@@ -62,7 +62,7 @@ class FilmService(object):
             for doc in matched_docs["hits"]["hits"]:
                 films.append(Film(**doc["_source"]))
             
-            await self._put_list_films_cache(chache_key, films)
+            await self._put_list_films_cache(cache_key, films)
 
         return films
 
@@ -74,9 +74,9 @@ class FilmService(object):
     ) -> Optional[List[Film]]:
         query = {"multi_match": {"query": search_query, "fields": ["title", "description"]}}
 
-        chache_key = '-'.join([json.dumps(query), str(page), str(size)])
+        cache_key = '-'.join(['movies', json.dumps(query), str(page), str(size)])
 
-        films = await self._list_films_cache(chache_key)
+        films = await self._list_films_cache(cache_key)
         if not films:
             films = []
             from_ = get_es_from_value(page, size)
@@ -86,7 +86,7 @@ class FilmService(object):
                 return None
             for doc in matched_docs["hits"]["hits"]:
                 films.append(Film(**doc["_source"]))
-            await self._put_list_films_cache(chache_key, films)
+            await self._put_list_films_cache(cache_key, films)
         return films
 
     async def _get_film_es(self, film_id: str) -> Optional[Film]:
@@ -98,7 +98,7 @@ class FilmService(object):
         return Film(**doc["_source"])
 
     async def _film_cache(self, film_id: str) -> Optional[Film]:
-        film_row = await self.redis.get(film_id)
+        film_row = await self.redis.get('-'.join(['movies', film_id]))
         if not film_row:
             return None
 
@@ -115,7 +115,7 @@ class FilmService(object):
 
     async def _put_film_cache(self, film: Film):
         logging.info('Save film to cache')
-        await self.redis.set(str(film.uuid), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set('-'.join(['movies', str(film.uuid)]), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_list_films_cache(self, list_name: str, films: List[Film]):
         logging.info('Save films list to cache')
