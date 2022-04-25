@@ -2,7 +2,7 @@ import aioredis
 import uvicorn
 from elasticsearch import AsyncElasticsearch
 
-from api.v1 import films, genres
+from api.v1 import films, genres, persons
 from core import config
 from db import elastic, redis
 from fastapi.applications import FastAPI
@@ -32,6 +32,7 @@ async def shutdown():
 # Теги указываем для удобства навигации по документации
 app.include_router(films.router, prefix="/api/v1/films", tags=["film"])
 app.include_router(genres.router, prefix="/api/v1/genres", tags=["genre"])
+app.include_router(persons.router, prefix="/api/v1/persons", tags=["person"])
 
 
 if __name__ == "__main__":

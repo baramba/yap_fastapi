@@ -20,9 +20,9 @@ class CommParams(object):
         self.genre_service = genre_service
 
 
-@router.get("/")
-async def genres(commons: CommParams = Depends()) -> Optional[List[Genre]]:
-    genres_ = await commons.genre_service.get_genres()
+@router.get("/", response_model=Genre)
+async def all_genres(commons: CommParams = Depends()) -> Optional[List[Genre]]:
+    genres = await commons.genre_service.get_genres()
     if not genres:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="genres not found")
-    return genres_
+    return genres
