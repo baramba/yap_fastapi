@@ -1,10 +1,10 @@
 import aioredis
 import uvicorn
-from elasticsearch import AsyncElasticsearch
-
 from api.v1 import films, genres, persons
 from core import config
 from db import elastic, redis
+from elasticsearch import AsyncElasticsearch
+
 from fastapi.applications import FastAPI
 from fastapi.responses import ORJSONResponse
 

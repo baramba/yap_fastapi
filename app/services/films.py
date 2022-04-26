@@ -6,34 +6,35 @@ from http import HTTPStatus
 from typing import List, Optional
 
 from aioredis import Redis
-from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import NotFoundError
-
 from db.elastic import get_elastic
 from db.redis import get_redis
+from elasticsearch import AsyncElasticsearch
+from elasticsearch.exceptions import NotFoundError
+from models.film import Film
+from services.rediscache import RedisCache, cache, cache_list
+from services.service_utils import get_es_from_value
+
 from fastapi.exceptions import HTTPException
 from fastapi.params import Depends
-from models.film import Film
-from services.service_utils import get_es_from_value
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
-class FilmService(object):
+class FilmService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
+        self.cache = RedisCache(redis)
 
-    async def get_by_id(self, film_id: uuid.UUID) -> Optional[Film]:
-        film = await self._film_cache(str(film_id))
-        if not film:
-            film = await self._get_film_es(film_id)
-            if not film:
-                return None
-            await self._put_film_cache(film)
+    @cache(Film)
+    async def get_by_id(self, film_id: str) -> Optional[Film]:
+        try:
+            doc = await self.elastic.get(index="movies", id=film_id)
+        except NotFoundError:
+            return None
+        return Film(**doc["_source"])
 
-        return film
-
+    @cache_list(Film)
     async def get_films(
         self,
         sort: str,
@@ -47,25 +48,20 @@ class FilmService(object):
         if genre:
             query = {"nested": {"path": "genre", "query": {"term": {"genre.uuid": genre}}}}
 
-        cache_key = '-'.join(['movies', json.dumps(query), sort, str(page), str(size)])
+        films = []
+        from_ = get_es_from_value(page, size)
 
-        films = await self._list_films_cache(cache_key)
-        if not films:
-            films = []
-            from_ = get_es_from_value(page, size)
+        try:
+            matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
+        except NotFoundError:
+            return None
 
-            try:
-                matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
-            except NotFoundError:
-                return None
-
-            for doc in matched_docs["hits"]["hits"]:
-                films.append(Film(**doc["_source"]))
-            
-            await self._put_list_films_cache(cache_key, films)
+        for doc in matched_docs["hits"]["hits"]:
+            films.append(Film(**doc["_source"]))
 
         return films
 
+    @cache_list(Film)
     async def get_films_search(
         self,
         search_query: str,
@@ -74,51 +70,15 @@ class FilmService(object):
     ) -> Optional[List[Film]]:
         query = {"multi_match": {"query": search_query, "fields": ["title", "description"]}}
 
-        cache_key = '-'.join(['movies', json.dumps(query), str(page), str(size)])
-
-        films = await self._list_films_cache(cache_key)
-        if not films:
-            films = []
-            from_ = get_es_from_value(page, size)
-            try:
-                matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
-            except NotFoundError:
-                return None
-            for doc in matched_docs["hits"]["hits"]:
-                films.append(Film(**doc["_source"]))
-            await self._put_list_films_cache(cache_key, films)
-        return films
-
-    async def _get_film_es(self, film_id: str) -> Optional[Film]:
+        films = []
+        from_ = get_es_from_value(page, size)
         try:
-            doc = await self.elastic.get(index="movies", id=film_id)
+            matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
         except NotFoundError:
             return None
-        logging.info('Get from Elasticsearch')    
-        return Film(**doc["_source"])
-
-    async def _film_cache(self, film_id: str) -> Optional[Film]:
-        film_row = await self.redis.get('-'.join(['movies', film_id]))
-        if not film_row:
-            return None
-        logging.info('Get from cache')
-        return Film.parse_raw(film_row)
-
-    async def _put_film_cache(self, film: Film):
-        logging.info('Save film to cache')
-        await self.redis.set('-'.join(['movies', str(film.uuid)]), film.json(), ex=FILM_CACHE_EXPIRE_IN_SECONDS)
-
-    async def _list_films_cache(self, list_name: str) -> Optional[List[Film]]:
-        films_row = await self.redis.lrange(list_name, 0, -1)
-        if not films_row:
-            return None
-        logging.info('Get list from cache')
-        return [Film.parse_raw(film_row) for film_row in films_row]
-
-    async def _put_list_films_cache(self, list_name: str, films: List[Film]):
-        logging.info('Save films list to cache')
-        await self.redis.lpush(list_name, *[film.json() for film in films])
-        await self.redis.expire(list_name, FILM_CACHE_EXPIRE_IN_SECONDS)
+        for doc in matched_docs["hits"]["hits"]:
+            films.append(Film(**doc["_source"]))
+        return films
 
 
 @lru_cache()

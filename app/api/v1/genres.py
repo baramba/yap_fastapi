@@ -15,7 +15,7 @@ from fastapi.routing import APIRouter
 router = APIRouter()
 
 
-class CommParams(object):
+class CommParams:
     def __init__(self, genre_service: GenreService = Depends(get_genre_service)) -> None:
         self.genre_service = genre_service
 
