@@ -13,10 +13,10 @@ class RedisCache:
     def __init__(self, redis: Redis) -> None:
         self.redis = redis
 
-    def get_hash_key(self, name: str, params: tuple) -> str:
+    def get_key(self, name: str, params: tuple) -> str:
         key = "-".join([str(param) for param in params])
         key = "-".join((key, name))
-        return hashlib.md5(bytes(key, "UTF-8")).hexdigest()
+        return key
 
     async def get_row(self, key: str) -> Optional[str]:
         data_row = await self.redis.get(key)
@@ -47,7 +47,7 @@ def cache(cached_obj: BaseApiModel):
     def wrapp(func):
         async def inner(self, *args, **kwargs) -> BaseApiModel:
             cache = RedisCache(self.redis)
-            cache_key = cache.get_hash_key(func.__name__, args)
+            cache_key = cache.get_key(func.__name__, args)
             data_row = await cache.get_row(cache_key)
             if not data_row:
                 result = await func(self, *args, *kwargs)
@@ -65,7 +65,7 @@ def cache_list(cached_obj: BaseApiModel):
     def wrapp(func):
         async def inner(self, *args, **kwargs) -> List[BaseApiModel]:
             cache = RedisCache(self.redis)
-            cache_key = cache.get_hash_key(func.__name__, args)
+            cache_key = cache.get_key(func.__name__, args)
             data_rows = await cache.get_rows(cache_key)
 
             if not data_rows:
