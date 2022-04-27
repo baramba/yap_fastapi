@@ -1,8 +1,10 @@
+from enum import Enum
+
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 
 
-class Page(object):
+class Page:
     def __init__(
         self,
         size: int = Query(10, alias="page[size]", ge=1),
@@ -11,3 +13,13 @@ class Page(object):
 
         self.number = number
         self.size = size
+
+
+class APIMessages(str, Enum):
+    FILM_NOT_FOUND = "film not found"
+    FILMS_NOT_FOUND = "films not found"
+
+    GENRES_NOT_FOUND = "genres not found"
+
+    OLD_ANDOID_DEVICE = "used for old android devices"
+    PERSON_NOT_FOUND = "persons not found"

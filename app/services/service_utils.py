@@ -1,6 +1,12 @@
+from enum import Enum
 from http import HTTPStatus
 
 from fastapi.exceptions import HTTPException
+
+
+class ServiceMessages(Enum):
+    ES_ERROR_LOC = "page[number] and page[size]"
+    ES_ERROR_MSG_ES = "page[number]+page[size]*page[number] more then 10000"
 
 
 def get_es_from_value(page: int, size: int) -> int:
@@ -22,11 +28,16 @@ def get_es_from_value(page: int, size: int) -> int:
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail=[
                 {
-                    "loc": ["query", "page[number] and page[size]"],
-                    "msg": "page[number]+page[size]*page[number] more then 10000",
+                    "loc": ["query", ServiceMessages.ES_ERROR_LOC],
+                    "msg": ServiceMessages.ES_ERROR_MSG_ES,
                     "type": "value_error",
                     "ctx": {"limit_value": 10000},
                 },
             ],
         )
     return page * size
+
+
+
+
+

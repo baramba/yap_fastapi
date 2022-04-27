@@ -1,15 +1,10 @@
 import uuid
 from typing import Dict, List, Optional
 
-import orjson
-from pydantic import BaseModel
+from models.basemodel import BaseApiModel
 
 
-def orjson_dumps(v, *, default):
-    return orjson.dumps(v, default=default).decode()
-
-
-class Film(BaseModel):
+class Film(BaseApiModel):
     uuid: uuid.UUID
     imdb_rating: float
     title: str
@@ -19,16 +14,8 @@ class Film(BaseModel):
     actors: Optional[List[Dict]]
     writers: Optional[List[Dict]]
 
-    class Config(object):
-        json_loads = orjson.loads
-        json_dumps = orjson_dumps
 
-
-class FilmBrief(BaseModel):
+class FilmBrief(BaseApiModel):
     uuid: uuid.UUID
     imdb_rating: float
     title: str
-
-    class Config(object):
-        json_loads = orjson.loads
-        json_dumps = orjson_dumps
