@@ -107,7 +107,7 @@ def make_get_request(http_client):
     async def inner(method: str, params: Optional[dict] = None) -> HTTPResponse:
         params = params or {}
 
-        url = "{0}{1}{2}".format(settings.api, settings.api_path, method)
+        url = "{0}{1}".format(settings.api_url, method)
         async with http_client.get(url, params=params) as response:
             return HTTPResponse(
                 body=await response.json(),

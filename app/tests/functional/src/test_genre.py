@@ -12,8 +12,9 @@ async def test_genres_extrem():
 
 
 @pytest.mark.asyncio
-async def test_genres_all():
-    pass
+async def test_genres_all(make_get_request):
+    response = await make_get_request("/genres")
+    assert response.status == 200
 
 
 @pytest.mark.asyncio
