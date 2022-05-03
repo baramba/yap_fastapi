@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fastapi_a1"
+name = "fastapi_test"
 version = "0.1.0"
 description = ""
 authors = ["Maxim B. <wedontask@gmail.com>"]
@@ -7,13 +7,11 @@ authors = ["Maxim B. <wedontask@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 elasticsearch = {version = "8.1.2", extras = ["async"]}
-fastapi = "0.61.1"
-orjson = "3.4.1"
 pydantic = "1.9.0"
-uvicorn = "0.17.6"
 uvloop = "0.14.0"
 aioredis = "2.0.1"
-gunicorn = "20.1.0"
+redis = "4.2.2"
+
 
 [tool.poetry.dev-dependencies]
 flake8 = "4.0.1"
@@ -36,10 +34,11 @@ include = '\.pyi?$'
 profile = "black"
 
 
-# [tool.pytest.ini_options]
-# minversion = "7.0"
-# addopts = "-ra -q"
-# asyncio_mode="auto"
-# # testpaths = [
-# #     "/home/babikhin/project/yandex/sprint4/fastapi/app/tests/functional",
-# # ]
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra --tb=short"
+asyncio_mode="auto"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+log_cli="True"
+

@@ -20,6 +20,7 @@ class APIMessages(str, Enum):
     FILMS_NOT_FOUND = "films not found"
 
     GENRES_NOT_FOUND = "genres not found"
+    GENRE_NOT_FOUND = "genre not found"
 
     OLD_ANDOID_DEVICE = "used for old android devices"
     PERSON_NOT_FOUND = "persons not found"
