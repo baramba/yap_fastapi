@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-from dataclasses import dataclass
 from typing import Optional
 
 import aiohttp
@@ -10,20 +9,13 @@ import aioredis
 import pytest
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
-from multidict import CIMultiDictProxy
 
 from config.settings import settings
+from src.response import HTTPResponse
 from utils.structures import Film, Genre, Person
 from utils.testdata import read_testdata
 
 log = logging.getLogger(os.path.basename(__file__))
-
-
-@dataclass
-class HTTPResponse:
-    body: dict
-    headers: CIMultiDictProxy[str]
-    status: int
 
 
 @pytest.fixture(scope="session")

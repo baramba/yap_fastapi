@@ -8,13 +8,13 @@ from config.logger import LOGGING_CONFIG
 
 logging.config.dictConfig(LOGGING_CONFIG)
 ROOT_DIR = Path(__file__).parent.parent
-print("settings.root:", ROOT_DIR)
 
 
 class TestSettings(BaseSettings):
     es: HttpUrl = Field(default="http://127.0.0.1:9200", env="TEST_ELASTIC_URL")
     redis_dsn: RedisDsn = Field(default="redis://@localhost:6379/0", env="TEST_REDIS_URL")
-    api_url: HttpUrl = Field(default="http://127.0.0.1:8001/api/v1", env="TEST_API_URL")
+    api_url: HttpUrl = Field(default="http://127.0.0.1:8000/api/v1", env="TEST_API_URL")
+    # api_url: HttpUrl = Field(default="http://127.0.0.1:8001/api/v1", env="TEST_API_URL")
     api_path: str = Field(default="/api/v1/", env="TEST_API_PATH")
 
     es_schema: dict = {
@@ -24,7 +24,7 @@ class TestSettings(BaseSettings):
     }
 
     root_dir: DirectoryPath = ROOT_DIR
-    testdata: DirectoryPath = Path(os.path.join(ROOT_DIR, "testdata"))
+    testdata: DirectoryPath = ROOT_DIR / "testdata"
 
 
 settings = TestSettings()
