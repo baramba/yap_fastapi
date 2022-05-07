@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 import aiohttp
 import aioredis
@@ -54,19 +54,19 @@ async def config_test_env(es_client: AsyncElasticsearch):
             await load_data_to_es(es_client=es_client, index=index, filename=files["data_file"])
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def get_genres():
     genres: list = read_testdata(settings.es_schema["genres"]["data_file"])
     return [Genre(**genre) for genre in genres]
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def get_persons():
     persons: list = read_testdata(settings.es_schema["persons"]["data_file"])
     return [Person(**person) for person in persons]
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def get_movies():
     movies: list = read_testdata(settings.es_schema["movies"]["data_file"])
     return [Film(**movie) for movie in movies]
@@ -80,7 +80,7 @@ async def es_client():
 
 
 @pytest.fixture(scope="session")
-async def redis_client():
+async def redis_client() -> AsyncGenerator[aioredis.Redis, None]:
     client = await aioredis.from_url(settings.redis_dsn)
     yield client
     await client.close()
@@ -91,6 +91,11 @@ async def http_client():
     client = aiohttp.ClientSession()
     yield client
     await client.close()
+
+
+@pytest.fixture
+async def redis_flush(redis_client):
+    redis_client.flushall()
 
 
 @pytest.fixture
