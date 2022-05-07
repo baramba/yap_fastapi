@@ -1,4 +1,4 @@
-import json
+import logging
 from dataclasses import dataclass
 
 from multidict import CIMultiDictProxy
@@ -25,14 +25,15 @@ class Response:
     def len(self, _len: int):
         count = 0
         if isinstance(self.body, list):
-            count = len(self.body) 
+            count = len(self.body)
         if isinstance(self.body, dict):
             count = 1
         assert count == _len
 
     def validate(self, model: BaseModel):
-        if isinstance(self.body, list):
-            for item in self.body:
-                model.parse_obj(item)
-        else:
-            model.parse_obj(self.body)
+        if self.status == 200:
+            if isinstance(self.body, list):
+                for item in self.body:
+                    model.parse_obj(item)
+            else:
+                model.parse_obj(self.body)

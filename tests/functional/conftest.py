@@ -41,7 +41,6 @@ async def load_data_to_es(es_client: AsyncElasticsearch, index: str, filename: s
         }
         for data in es_data["hits"]["hits"]
     ]
-    print("actions", actions)
     await async_bulk(client=es_client, actions=actions)
 
 
@@ -100,11 +99,14 @@ def make_get_request(http_client):
         params = params or {}
 
         url = "{0}{1}".format(settings.api_url, method)
-        async with http_client.get(url, params=params) as response:
-            return HTTPResponse(
-                body=await response.json(),
-                headers=response.headers,
-                status=response.status,
-            )
+        try:
+            async with http_client.get(url, params=params) as response:
+                return HTTPResponse(
+                    body=await response.json(),
+                    headers=response.headers,
+                    status=response.status,
+                )
+        except Exception as e:
+            logging.error(e)
 
     return inner
