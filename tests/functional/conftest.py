@@ -2,12 +2,7 @@ import asyncio
 import json
 import logging
 import os
-<<<<<<< HEAD:app/tests/functional/conftest.py
-from dataclasses import dataclass
 from typing import AsyncGenerator, Optional
-=======
-from typing import Optional
->>>>>>> 83dd9844115c288108a08f27bb9319269b31a557:tests/functional/conftest.py
 
 import aiohttp
 import aioredis
@@ -46,14 +41,13 @@ async def load_data_to_es(es_client: AsyncElasticsearch, index: str, filename: s
         }
         for data in es_data["hits"]["hits"]
     ]
-    print("actions", actions)
     await async_bulk(client=es_client, actions=actions)
 
 
 @pytest.mark.asyncio
 @pytest.fixture(scope="session", autouse=True)
 async def config_test_env(es_client: AsyncElasticsearch):
-
+    log.info("make config_test_env")
     for index, files in settings.es_schema.items():
         if not await es_client.indices.exists(index=index):
             await create_es_index(es_client, index, filename=files["sch_file"])
@@ -110,11 +104,14 @@ def make_get_request(http_client):
         params = params or {}
 
         url = "{0}{1}".format(settings.api_url, method)
-        async with http_client.get(url, params=params) as response:
-            return HTTPResponse(
-                body=await response.json(),
-                headers=response.headers,
-                status=response.status,
-            )
+        try:
+            async with http_client.get(url, params=params) as response:
+                return HTTPResponse(
+                    body=await response.json(),
+                    headers=response.headers,
+                    status=response.status,
+                )
+        except Exception as e:
+            logging.error(e)
 
     return inner
