@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  es:
+    container_name: es
+    image: elasticsearch:8.1.2
+    env_file:
+      - .env
+    environment:
+      - discovery.type=single-node
+      - node.name=${COMPOSE_PROJECT_NAME}_01
+      - cluster.name=${COMPOSE_PROJECT_NAME}
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+      - xpack.security.enabled=false
+    ports:
+      - 9200:9200
+  redis:
+    env_file:
+      - .env
+    container_name: redis
+    image: redis:6.2.6
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+    ports:
+      - 6379:6379
+  api:
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    container_name: api
+    ports:
+      - 8000:8000
+    depends_on:
+      - es
+      - redis
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    container_name: api
+    depends_on:
+      - es
+      - redis
+    entrypoint: >
+      sh -c "pip install -r /tests/functional/requirements.txt && python3 /tests/functional/utils/wait_for_es.py && python3 /tests/functional/utils/wait_for_redis.py && pytest /tests/functional/src"
