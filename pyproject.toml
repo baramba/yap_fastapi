@@ -36,10 +36,10 @@ include = '\.pyi?$'
 profile = "black"
 
 
-# [tool.pytest.ini_options]
+[tool.pytest.ini_options]
 # minversion = "7.0"
 # addopts = "-ra -q"
-# asyncio_mode="auto"
+asyncio_mode="auto"
 # # testpaths = [
 # #     "/home/babikhin/project/yandex/sprint4/fastapi/app/tests/functional",
 # # ]
