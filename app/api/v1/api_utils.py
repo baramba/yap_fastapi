@@ -1,14 +1,13 @@
 from enum import Enum
 
 from fastapi.param_functions import Query
-from fastapi.params import Depends
 
 
 class Page:
     def __init__(
         self,
-        size: int = Query(10, alias="page[size]", ge=1),
-        number: int = Query(0, alias="page[number]", ge=0),
+        size: int = Query(default=10, alias="page[size]", ge=1, le=10000),
+        number: int = Query(default=0, alias="page[number]", ge=0, le=10000),
     ) -> None:
 
         self.number = number
