@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from dataclasses import dataclass
 from typing import AsyncGenerator, Optional
 
 import aiohttp
@@ -9,13 +10,21 @@ import aioredis
 import pytest
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
+from multidict import CIMultiDictProxy
+from pydantic import BaseModel
 
 from config.settings import settings
-from src.response import HTTPResponse
 from utils.structures import Film, Genre, Person
 from utils.testdata import read_testdata
 
 log = logging.getLogger(os.path.basename(__file__))
+
+
+@dataclass
+class HTTPResponse:
+    body: dict
+    headers: CIMultiDictProxy[str]
+    status: int
 
 
 @pytest.fixture(scope="session")
@@ -104,14 +113,10 @@ def make_get_request(http_client):
         params = params or {}
 
         url = "{0}{1}".format(settings.api_url, method)
-        try:
-            async with http_client.get(url, params=params) as response:
-                return HTTPResponse(
-                    body=await response.json(),
-                    headers=response.headers,
-                    status=response.status,
-                )
-        except Exception as e:
-            logging.error(e)
+        async with http_client.get(url, params=params) as response:
+            status = response.status
+            body = await response.json() if status < 500 else {}
+            headers = response.headers
+            return HTTPResponse(body, headers, status)
 
     return inner

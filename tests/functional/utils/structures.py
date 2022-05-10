@@ -5,7 +5,21 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class Film(BaseModel):
+class MetaBaseModel(BaseModel):
+    def __lt__(self, other):
+        return self.uuid.int < other.uuid.int
+
+    def __le__(self, other):
+        return self.uuid.int <= other.uuid.int
+
+    def __gt__(self, other):
+        return self.uuid.int > other.uuid.int
+
+    def __ge__(self, other):
+        return self.uuid.int >= other.uuid.int
+
+
+class Film(MetaBaseModel):
     uuid: uuid.UUID
     imdb_rating: float
     title: str
@@ -16,18 +30,18 @@ class Film(BaseModel):
     writers: Optional[list[dict]]
 
 
-class FilmBrief(BaseModel):
+class FilmBrief(MetaBaseModel):
     uuid: uuid.UUID
     imdb_rating: float
     title: str
 
 
-class Genre(BaseModel):
+class Genre(MetaBaseModel):
     uuid: uuid.UUID
     name: str
 
 
-class Person(BaseModel):
+class Person(MetaBaseModel):
     uuid: uuid.UUID
     full_name: str
     role: str
