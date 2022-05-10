@@ -89,7 +89,8 @@ async def get_cache() -> Cache:
 def cache2(func):
     async def wrapper(self, *args, **kwargs):
         cache = await get_cache()
-        cache_key = cache.get_key(func.__name__, args)
+        params = [*args, *kwargs.keys(), *kwargs.values()]
+        cache_key = cache.get_key(func.__name__, params)
         data_row = await cache.get_from_cache(cache_key)
         if not data_row:
             result = await func(self, *args, **kwargs)
