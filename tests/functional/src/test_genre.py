@@ -73,25 +73,13 @@ async def test_genres_pagination_page_number_over_max_limit(make_get_request):
 
 
 @pytest.mark.asyncio
-async def test_genres_all_cache(make_get_request, redis_client: aioredis.Redis):
-    await redis_client.flushall()
-    response = await make_get_request("/genres")
-    assert response.status == 200
-    keys = await redis_client.scan(count=10, match="*genre*")
-    result = await redis_client.lrange(keys[1][0].decode(), 0, -1)
-    genres_from_cache = [Genre.parse_raw(row) for row in result[::-1]]
-    genres_from_api = [Genre(**row) for row in response.body]
-    assert genres_from_api == genres_from_cache
-
-
-@pytest.mark.asyncio
-async def test_genres_by_valid_id_cache(make_get_request, get_genres, redis_client: aioredis.Redis):
+async def test_genres_search(make_get_request, redis_client: aioredis.Redis, get_genres: list[Genre]):
     await redis_client.flushall()
     genre = choice(get_genres)
-    response = await make_get_request("/genres/{id}".format(id=genre.uuid))
+    response = await make_get_request("/genres/search", {"query": genre.name})
     assert response.status == 200
     keys = await redis_client.scan(count=10, match="*genre*")
-    cache = await redis_client.get(keys[1][0].decode())
+    cache = await redis_client.lrange(keys[1][0].decode(), 0, -1)
     assert validate(response.body, Genre) == validate(cache, Genre)
 
 
@@ -103,3 +91,14 @@ async def test_genres_all_cache(make_get_request, redis_client: aioredis.Redis):
     keys = await redis_client.scan(count=10, match="*genre*")
     cache = await redis_client.lrange(keys[1][0].decode(), 0, -1)
     assert sorted(validate(response.body, Genre)) == sorted(validate(cache, Genre))
+
+
+@pytest.mark.asyncio
+async def test_genres_by_valid_id_cache(make_get_request, get_genres, redis_client: aioredis.Redis):
+    await redis_client.flushall()
+    genre = choice(get_genres)
+    response = await make_get_request("/genres/{id}".format(id=genre.uuid))
+    assert response.status == 200
+    keys = await redis_client.scan(count=10, match="*genre*")
+    cache = await redis_client.get(keys[1][0].decode())
+    assert validate(response.body, Genre) == validate(cache, Genre)
