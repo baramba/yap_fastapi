@@ -80,7 +80,7 @@ async def test_genres_search(make_get_request, redis_client: aioredis.Redis, get
     assert response.status == 200
     keys = await redis_client.scan(count=10, match="*genre*")
     cache = await redis_client.lrange(keys[1][0].decode(), 0, -1)
-    assert validate(response.body, Genre) == validate(cache, Genre)
+    assert sorted(validate(response.body, Genre)) == sorted(validate(cache, Genre))
 
 
 @pytest.mark.asyncio
