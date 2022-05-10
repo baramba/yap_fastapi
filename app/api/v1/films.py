@@ -44,14 +44,7 @@ async def films_main_page(
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=APIMessages.FILMS_NOT_FOUND)
 
-    return [
-        FilmBrief(
-            uuid=film.uuid,
-            title=film.title,
-            imdb_rating=film.imdb_rating,
-        )
-        for film in films
-    ]
+    return [FilmBrief(**film) for film in films]
 
 
 @router.get("/search", response_model=List[FilmBrief])
@@ -65,14 +58,7 @@ async def films_search(
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=APIMessages.FILMS_NOT_FOUND)
 
-    return [
-        FilmBrief(
-            uuid=film.uuid,
-            title=film.title,
-            imdb_rating=film.imdb_rating,
-        )
-        for film in films
-    ]
+    return [FilmBrief(**film) for film in films]
 
 
 @router.get("/{film_id}", response_model=Film)
@@ -85,4 +71,4 @@ async def film_by_id(
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=APIMessages.FILM_NOT_FOUND)
 
-    return film
+    return Film(**film)

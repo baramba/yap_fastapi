@@ -11,6 +11,7 @@ import pytest
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 from multidict import CIMultiDictProxy
+from pydantic import BaseModel
 
 from config.settings import settings
 from utils.structures import Film, Genre, Person
@@ -49,7 +50,6 @@ async def load_data_to_es(es_client: AsyncElasticsearch, index: str, filename: s
         }
         for data in es_data["hits"]["hits"]
     ]
-    print("actions", actions)
     await async_bulk(client=es_client, actions=actions)
 
 
@@ -114,10 +114,9 @@ def make_get_request(http_client):
 
         url = "{0}{1}".format(settings.api_url, method)
         async with http_client.get(url, params=params) as response:
-            return HTTPResponse(
-                body=await response.json(),
-                headers=response.headers,
-                status=response.status,
-            )
+            status = response.status
+            body = await response.json() if status < 500 else {}
+            headers = response.headers
+            return HTTPResponse(body, headers, status)
 
     return inner

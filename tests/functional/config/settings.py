@@ -1,5 +1,4 @@
 import logging.config
-import os
 from pathlib import Path
 
 from pydantic import BaseSettings, DirectoryPath, Field, HttpUrl, RedisDsn
@@ -8,7 +7,6 @@ from config.logger import LOGGING_CONFIG
 
 logging.config.dictConfig(LOGGING_CONFIG)
 ROOT_DIR = Path(__file__).parent.parent
-print("settings.root:", ROOT_DIR)
 
 
 class TestSettings(BaseSettings):
@@ -24,7 +22,7 @@ class TestSettings(BaseSettings):
     }
 
     root_dir: DirectoryPath = ROOT_DIR
-    testdata: DirectoryPath = Path(os.path.join(ROOT_DIR, "testdata"))
+    testdata: DirectoryPath = ROOT_DIR / "testdata"
 
 
 settings = TestSettings()
