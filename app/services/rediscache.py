@@ -1,12 +1,12 @@
-import hashlib
 import logging
-from curses import wrapper
 from typing import List, Optional
 
 from aioredis import Redis
 from models.basemodel import BaseApiModel
 
-CACHE_EXPIRE_IN_SECONDS = 60 * 5
+
+
+CACHE_EXPIRE_IN_SECONDS = 360 * 5
 
 
 class RedisCache:
@@ -20,7 +20,6 @@ class RedisCache:
 
     async def get_row(self, key: str) -> Optional[str]:
         data_row = await self.redis.get(key)
-
         if not data_row:
             return None
         logging.info("Get {0} from cache".format(key))
@@ -28,6 +27,7 @@ class RedisCache:
 
     async def put_row(self, key: str, payload: str) -> None:
         logging.info("Save {0} to cache".format(key))
+        logging.info("Save {0} to cache. Type payload".format(type(payload)))
         await self.redis.set(key, payload, ex=CACHE_EXPIRE_IN_SECONDS)
 
     async def get_rows(self, key: str) -> Optional[list]:
@@ -39,18 +39,19 @@ class RedisCache:
 
     async def put_rows(self, key: str, payload: list) -> None:
         logging.info("Save {0} to cache".format(key))
+        logging.info("Save {0} to cache. Type payload".format(type(payload)))
         await self.redis.lpush(key, *payload)
         await self.redis.expire(key, CACHE_EXPIRE_IN_SECONDS)
 
 
-def cache(cached_obj: BaseApiModel):
+def cache(cached_obj: type[BaseApiModel]):
     def wrapp(func):
         async def inner(self, *args, **kwargs) -> BaseApiModel:
             cache = RedisCache(self.redis)
             cache_key = cache.get_key(func.__name__, args)
             data_row = await cache.get_row(cache_key)
             if not data_row:
-                result = await func(self, *args, *kwargs)
+                result = await func(self, *args, **kwargs)
                 if result:
                     await cache.put_row(cache_key, result.json())
                 return result
@@ -61,7 +62,7 @@ def cache(cached_obj: BaseApiModel):
     return wrapp
 
 
-def cache_list(cached_obj: BaseApiModel):
+def cache_list(cached_obj: type[BaseApiModel]):
     def wrapp(func):
         async def inner(self, *args, **kwargs) -> List[BaseApiModel]:
             cache = RedisCache(self.redis)

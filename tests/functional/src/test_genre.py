@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from random import randint
@@ -60,13 +61,26 @@ async def test_genres_one(make_get_request, get_genres):
 
 
 @pytest.mark.asyncio
+async def test_genres_search(make_get_request, redis_client: aioredis.Redis, get_genres: list[Genre]):
+    await redis_client.flushall()
+    genre = get_genres[randint(0, len(get_genres))]
+    response = await make_get_request("/genres/search?query={0}".format(genre.name))
+    assert response.status == 200
+    keys = await redis_client.scan(count=10, match="*genre*")
+    result = await redis_client.lrange(keys[1][0].decode(), 0, -1)
+    genres_from_cache = [Genre(**json.loads(row)) for row in result[::-1]]
+    genres_from_api = [Genre(**row) for row in response.body]
+    assert genres_from_api == genres_from_cache
+
+
+@pytest.mark.asyncio
 async def test_genres_all_cache(make_get_request, redis_client: aioredis.Redis):
     await redis_client.flushall()
     response = await make_get_request("/genres")
     assert response.status == 200
     keys = await redis_client.scan(count=10, match="*genre*")
     result = await redis_client.lrange(keys[1][0].decode(), 0, -1)
-    genres_from_cache = [Genre.parse_raw(row) for row in result[::-1]]
+    genres_from_cache = [Genre(**json.loads(row)) for row in result[::-1]]
     genres_from_api = [Genre(**row) for row in response.body]
     assert genres_from_api == genres_from_cache
 
@@ -80,6 +94,6 @@ async def test_genres_one_cache(make_get_request, get_genres, redis_client: aior
 
     keys = await redis_client.scan(count=10, match="*genre*")
     result = await redis_client.get(keys[1][0].decode())
-    genre_from_cache = Genre.parse_raw(result)
+    genre_from_cache = Genre(**json.loads(result))
     genre_from_api = Genre(**response.body)
     assert genre_from_cache == genre_from_api
