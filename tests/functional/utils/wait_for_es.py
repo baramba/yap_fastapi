@@ -4,15 +4,18 @@ import sys
 import traceback
 
 import requests
-from backoff import backoff
 
-from functional.config.settings import settings
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+
+from config.settings import settings
+from utils.backoff import backoff
 
 log = logging.getLogger(os.path.basename(__file__))
 
 
 @backoff(exception=Exception, retry=10, message={"error": "Ошибка подключения к ES."}, log=log)
 def check(url):
+    print("[check]:", url)
     req = requests.get(url)
     status = req.status_code
     log.info(status)

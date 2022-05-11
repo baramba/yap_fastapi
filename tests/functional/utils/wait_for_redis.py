@@ -4,8 +4,10 @@ import sys
 
 import redis
 
-from functional.config.settings import settings
-from functional.utils.backoff import backoff
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+
+from config.settings import settings
+from utils.backoff import backoff
 
 log = logging.getLogger(os.path.basename(__file__))
 
