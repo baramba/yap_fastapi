@@ -20,7 +20,7 @@ async def test_persons_by_valid_id(make_get_request, get_persons):
     person = choice(get_persons)
     response = await make_get_request("/persons/{id}".format(id=person.uuid))
     assert response.status == HTTPStatus.OK
-    validate(response.body, Person)
+    assert validate(response.body, Person) == person
 
 
 @pytest.mark.asyncio
@@ -31,21 +31,36 @@ async def test_persons_by_not_valid_id(make_get_request):
 
 
 @pytest.mark.asyncio
-async def test_films_with_person_by_valid_id(make_get_request, get_persons):
+async def test_films_with_person_by_valid_id(make_get_request, get_persons, get_movies):
     person = choice(get_persons)
+    expected_films = [
+        film.copy(include={'uuid', 'imdb_rating', 'title'})
+        for film in get_movies
+        if (str(person.uuid) in [film_director['uuid'] for film_director in film.directors]) or
+        (str(person.uuid) in [film_actor['uuid'] for film_actor in film.actors]) or
+        (str(person.uuid) in [film_writer['uuid'] for film_writer in film.writers])
+    ][:10]  # page[size] = 10
     response = await make_get_request("/persons/{id}/film".format(id=person.uuid))
     assert response.status == HTTPStatus.OK
-    validate(response.body, FilmBrief)
+    assert validate(response.body, FilmBrief) == expected_films
 
 
 @pytest.mark.asyncio
-async def test_films_with_person_pagination(make_get_request, get_persons):
+async def test_films_with_person_pagination(make_get_request, get_persons, get_movies):
     person = choice(get_persons)
+    expected_films = [
+        film.copy(include={'uuid', 'imdb_rating', 'title'})
+        for film in get_movies
+        if (str(person.uuid) in [film_director['uuid'] for film_director in film.directors]) or
+        (str(person.uuid) in [film_actor['uuid'] for film_actor in film.actors]) or
+        (str(person.uuid) in [film_writer['uuid'] for film_writer in film.writers])
+    ][:10000]  # page[size] = 10000
+
     response = await make_get_request(
         "/persons/{id}/film".format(id=person.uuid), {"page[size]": 10000, "page[number]": 0}
     )
     assert response.status == HTTPStatus.OK
-    validate(response.body, FilmBrief)
+    assert validate(response.body, FilmBrief) == expected_films
 
 
 @pytest.mark.asyncio

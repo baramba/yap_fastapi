@@ -18,19 +18,20 @@ from utils.structures import Film, FilmBrief
 
 
 @pytest.mark.asyncio
-async def test_movies_all(make_get_request):
+async def test_movies_all(make_get_request, get_movies_brief):
     response = await make_get_request("/films")
     assert response.status == HTTPStatus.OK
-    assert len(response.body) == 10
-    validate(response.body, FilmBrief)
+    expected_films = get_movies_brief[:-11:-1]  # default sort = _doc:desc; page[size] = 10
+    assert validate(response.body, FilmBrief) == expected_films
 
 
 @pytest.mark.asyncio
-async def test_movies_with_valid_sort(make_get_request):
+async def test_movies_with_valid_sort(make_get_request, get_movies_brief):
     response = await make_get_request("/films", {"sort": "-imdb_rating"})
     assert response.status == HTTPStatus.OK
-    assert len(response.body) == 10
-    validate(response.body, FilmBrief)
+    expected_films = sorted(get_movies_brief, key=lambda item: item.imdb_rating,
+                            reverse=True)[:10]  # default page[size] = 10
+    assert validate(response.body, FilmBrief) == expected_films
 
 
 @pytest.mark.asyncio
@@ -41,11 +42,11 @@ async def test_movies_with_not_valid_sort(make_get_request):
 
 
 @pytest.mark.asyncio
-async def test_movies_pagination(make_get_request):
+async def test_movies_pagination(make_get_request, get_movies_brief):
     response = await make_get_request("/films", {"page[size]": 10000, "page[number]": 0})
     assert response.status == HTTPStatus.OK
-    assert len(response.body) == 100
-    validate(response.body, FilmBrief)
+    expected_films = get_movies_brief[:-10001:-1]
+    assert validate(response.body, FilmBrief) == expected_films
 
 
 @pytest.mark.asyncio
@@ -77,11 +78,19 @@ async def test_movies_pagination_page_number_over_max_limit(make_get_request):
 
 
 @pytest.mark.asyncio
-async def test_movies_with_valid_filter(make_get_request, get_genres):
+async def test_movies_with_valid_filter(make_get_request, get_genres, get_movies):
     genre = choice(get_genres)
+    expected_films = [
+        film.copy(include={'uuid', 'imdb_rating', 'title'})
+        for film in get_movies
+        if str(genre.uuid) in [film_genre['uuid'] for film_genre in film.genre]
+    ][:-11:-1]
     response = await make_get_request("/films", {"filter[genre]": str(genre.uuid)})
-    assert response.status == HTTPStatus.OK
-    validate(response.body, FilmBrief)
+    if len(expected_films) > 0:
+        assert response.status == HTTPStatus.OK
+        assert validate(response.body, FilmBrief) == expected_films
+    else:
+        assert response.status == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.asyncio
@@ -97,8 +106,7 @@ async def test_movies_by_valid_id(make_get_request, get_movies):
     movie = choice(get_movies)
     response = await make_get_request("/films/{id}".format(id=movie.uuid))
     assert response.status == HTTPStatus.OK
-    validate(response.body, Film)
-    assert response.body.get("uuid") == str(movie.uuid)
+    assert validate(response.body, Film) == movie
 
 
 @pytest.mark.asyncio

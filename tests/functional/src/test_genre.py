@@ -15,11 +15,11 @@ from utils.service import validate
 from utils.structures import Genre
 
 
-async def test_genres_all(make_get_request):
+async def test_genres_all(make_get_request, get_genres):
+    expected_genres = get_genres[:10]  # default page[size] = 10
     response = await make_get_request("/genres")
     assert response.status == HTTPStatus.OK
-    assert len(response.body) == 10
-    validate(response.body, Genre)
+    assert validate(response.body, Genre) == expected_genres
 
 
 @pytest.mark.asyncio
@@ -27,8 +27,7 @@ async def test_genres_by_valid_id(make_get_request, get_genres):
     genre = choice(get_genres)
     response = await make_get_request("/genres/{id}".format(id=genre.uuid))
     assert response.status == HTTPStatus.OK
-    validate(response.body, Genre)
-    assert response.body.get("uuid") == str(genre.uuid)
+    assert validate(response.body, Genre) == genre
 
 
 @pytest.mark.asyncio
@@ -39,10 +38,11 @@ async def test_genres_by_not_valid_id(make_get_request):
 
 
 @pytest.mark.asyncio
-async def test_genres_pagination(make_get_request):
+async def test_genres_pagination(make_get_request, get_genres):
+    expected_genres = get_genres[:10000]  # default page[size] = 10000
     response = await make_get_request("/genres", {"page[size]": 10000, "page[number]": 0})
     assert response.status == HTTPStatus.OK
-    validate(response.body, Genre)
+    assert validate(response.body, Genre) == expected_genres
 
 
 @pytest.mark.asyncio

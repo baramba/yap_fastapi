@@ -11,10 +11,9 @@ import pytest
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 from multidict import CIMultiDictProxy
-from pydantic import BaseModel
 
 from config.settings import settings
-from utils.structures import Film, Genre, Person
+from utils.structures import Film, FilmBrief, Genre, Person
 from utils.testdata import read_testdata
 
 log = logging.getLogger(os.path.basename(__file__))
@@ -79,6 +78,12 @@ def get_persons():
 def get_movies():
     movies: list = read_testdata(settings.es_schema["movies"]["data_file"])
     return [Film(**movie) for movie in movies]
+
+
+@pytest.fixture(scope="session")
+def get_movies_brief():
+    movies: list = read_testdata(settings.es_schema["movies"]["data_file"])
+    return [FilmBrief(**movie) for movie in movies]
 
 
 @pytest.fixture(scope="session")
