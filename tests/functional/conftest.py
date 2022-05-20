@@ -1,23 +1,14 @@
 import asyncio
-import json
-import logging
-import os
 from dataclasses import dataclass
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 import aiohttp
-import aioredis
 import pytest
-from elasticsearch import AsyncElasticsearch
-from elasticsearch.helpers import async_bulk
 from multidict import CIMultiDictProxy
-from pydantic import BaseModel
 
 from config.settings import settings
-from utils.structures import Film, Genre, Person
-from utils.testdata import read_testdata
 
-log = logging.getLogger(os.path.basename(__file__))
+pytest_plugins = ("create_test_env", "get_test_data")
 
 
 @dataclass
@@ -30,69 +21,6 @@ class HTTPResponse:
 @pytest.fixture(scope="session")
 def event_loop():
     return asyncio.get_event_loop()
-
-
-async def create_es_index(es_client: AsyncElasticsearch, index: str, filename: str):
-    with open(os.path.join(settings.testdata, filename)) as file:
-        es_schema = json.load(file)
-
-        await es_client.indices.create(index=index, mappings=es_schema["mappings"], settings=es_schema["settings"])
-
-
-async def load_data_to_es(es_client: AsyncElasticsearch, index: str, filename: str):
-    with open(os.path.join(settings.testdata, filename)) as file:
-        es_data = json.load(file)
-    actions = [
-        {
-            "_index": index,
-            "_id": data["_id"],
-            "_source": {key: value for key, value in data.items() if key not in ("_id", "_score", "_index")},
-        }
-        for data in es_data["hits"]["hits"]
-    ]
-    await async_bulk(client=es_client, actions=actions)
-
-
-@pytest.mark.asyncio
-@pytest.fixture(scope="session", autouse=True)
-async def config_test_env(es_client: AsyncElasticsearch):
-
-    for index, files in settings.es_schema.items():
-        if not await es_client.indices.exists(index=index):
-            await create_es_index(es_client, index, filename=files["sch_file"])
-            await load_data_to_es(es_client=es_client, index=index, filename=files["data_file"])
-
-
-@pytest.fixture(scope="session")
-def get_genres():
-    genres: list = read_testdata(settings.es_schema["genres"]["data_file"])
-    return [Genre(**genre) for genre in genres]
-
-
-@pytest.fixture(scope="session")
-def get_persons():
-    persons: list = read_testdata(settings.es_schema["persons"]["data_file"])
-    return [Person(**person) for person in persons]
-
-
-@pytest.fixture(scope="session")
-def get_movies():
-    movies: list = read_testdata(settings.es_schema["movies"]["data_file"])
-    return [Film(**movie) for movie in movies]
-
-
-@pytest.fixture(scope="session")
-async def es_client():
-    client = AsyncElasticsearch(hosts=settings.es)
-    yield client
-    await client.close()
-
-
-@pytest.fixture(scope="session")
-async def redis_client() -> AsyncGenerator[aioredis.Redis, None]:
-    client = await aioredis.from_url(settings.redis_dsn)
-    yield client
-    await client.close()
 
 
 @pytest.fixture(scope="session")

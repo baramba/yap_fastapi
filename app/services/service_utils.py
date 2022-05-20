@@ -9,8 +9,8 @@ class ServiceMessages(str, Enum):
     ES_ERROR_MSG_ES = "page[number]+page[size]*page[number] more then 10000"
 
 
-def get_es_from_value(page: int, size: int) -> int:
-    """get_es_from_value return "from" parameter value for ElasticSearch.search().
+def get_offset(page: int, size: int) -> int:
+    """get_offset return offset for search service
 
     Arguments:
         page -- page number
@@ -20,9 +20,8 @@ def get_es_from_value(page: int, size: int) -> int:
         HTTPException: UNPROCESSABLE_ENTITY
 
     Returns:
-        return ElasticSearch.search "from" value
+        return offset value
     """
-    # https://www.elastic.co/guide/en/elasticsearch/reference/8.1/paginate-search-results.html
     if size + page * size > 10000:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,

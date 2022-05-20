@@ -2,66 +2,38 @@ import uuid
 from functools import lru_cache
 from typing import Optional
 
-from aioredis import Redis
-from db.elastic import get_elastic
-from db.redis import get_redis
-from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import NotFoundError
-from services.cache import cache2
-from services.service_utils import get_es_from_value
+from services.base import BaseSearch
+from services.cache import cache
+from services.elastic import Elastic
+from services.service_utils import get_offset
 
 from fastapi.params import Depends
 
-CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
-
 
 class PersonService:
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
-        self.elastic = elastic
+    def __init__(self, search: BaseSearch):
+        self.search = search
 
-    @cache2
+    @cache
     async def get_person(self, person_id: uuid.UUID) -> Optional[dict]:
-        try:
-            doc = await self.elastic.get(index="persons", id=str(person_id))
-        except NotFoundError:
-            return None
-        return doc["_source"]
+        res = await self.search.get(index="persons", id=str(person_id))
+        return res
 
-    @cache2
+    @cache
     async def get_persons_search(self, search_query: str, size: int, page: int) -> Optional[list[dict]]:
+        offset = get_offset(page, size)
+        res = await self.search.search(index='persons', size=size, offset=offset, search_query=search_query)
+        return res
 
-        from_ = get_es_from_value(page, size)
-        query = {"multi_match": {"query": search_query, "fields": ["full_name"]}}
-
-        try:
-            matched = await self.elastic.search(index="persons", query=query, size=size, from_=from_)
-        except NotFoundError:
-            return None
-        return [doc["_source"] for doc in matched["hits"]["hits"]]
-
-    @cache2
+    @cache
     async def get_films_by_person(self, person_id: uuid.UUID, size: int, page: int) -> Optional[list[dict]]:
-        from_ = get_es_from_value(page, size)
-        query = {
-            "bool": {
-                "should": [
-                    {"nested": {"path": role, "query": {"term": {"{0}.uuid".format(role): person_id}}}}
-                    for role in ["actors", "writers", "directors"]
-                ]
-            }
-        }
-        matched = await self.elastic.search(index="movies", query=query, from_=from_, size=size)
-
-        if not matched:
-            return None
-
-        return [doc["_source"] for doc in matched["hits"]["hits"]]
+        offset = get_offset(page, size)
+        res = await self.search.search(index='movies', size=size, offset=offset, person_id=person_id)
+        return res
 
 
 @lru_cache()
 def get_person_service(
-    redis: Redis = Depends(get_redis),  # type: ignore
-    elastic: AsyncElasticsearch = Depends(get_elastic),  # type: ignore
+    search: BaseSearch = Depends(Elastic),  # type: ignore
 ) -> PersonService:
-    return PersonService(redis, elastic)
+    return PersonService(search)
