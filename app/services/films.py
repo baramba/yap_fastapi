@@ -2,29 +2,24 @@ import uuid
 from functools import lru_cache
 from typing import Optional
 
-from aioredis import Redis
-from db.redis import get_redis
 from services.base import BaseSearch
-from services.cache import cache2
+from services.cache import cache
 from services.elastic import Elastic
 from services.service_utils import get_offset
 
 from fastapi.params import Depends
 
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
-
 
 class FilmService:
-    def __init__(self, redis: Redis, search: BaseSearch):
-        self.redis = redis
+    def __init__(self, search: BaseSearch):
         self.search = search
 
-    @cache2
+    @cache
     async def get_by_id(self, film_id: str) -> Optional[dict]:
         res = await self.search.get(index='movies', id=film_id)
         return res
 
-    @cache2
+    @cache
     async def get_films(
         self,
         sort: str,
@@ -38,7 +33,7 @@ class FilmService:
         res = await self.search.search(index="movies", size=size, offset=offset, genre=genre, sort=sort)
         return res
 
-    @cache2
+    @cache
     async def get_films_search(
         self,
         search_query: str,
@@ -54,7 +49,6 @@ class FilmService:
 
 @lru_cache()
 def get_film_service(
-    redis: Redis = Depends(get_redis),  # type: ignore
     search: BaseSearch = Depends(Elastic),  # type: ignore
 ) -> FilmService:
-    return FilmService(redis, search)
+    return FilmService(search)
