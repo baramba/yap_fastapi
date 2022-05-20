@@ -3,12 +3,11 @@ from functools import lru_cache
 from typing import Optional
 
 from aioredis import Redis
-from db.elastic import get_elastic
 from db.redis import get_redis
-from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import NotFoundError
+from services.base import BaseSearch
 from services.cache import cache2
-from services.service_utils import get_es_from_value
+from services.elastic import Elastic
+from services.service_utils import get_offset
 
 from fastapi.params import Depends
 
@@ -16,17 +15,14 @@ FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
 class FilmService:
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
+    def __init__(self, redis: Redis, search: BaseSearch):
         self.redis = redis
-        self.elastic = elastic
+        self.search = search
 
     @cache2
     async def get_by_id(self, film_id: str) -> Optional[dict]:
-        try:
-            doc = await self.elastic.get(index="movies", id=film_id)
-        except NotFoundError:
-            return None
-        return doc["_source"]
+        res = await self.search.get(index='movies', id=film_id)
+        return res
 
     @cache2
     async def get_films(
@@ -37,23 +33,10 @@ class FilmService:
         genre: Optional[uuid.UUID] = None,
     ) -> Optional[list[dict]]:
 
-        query = {"match_all": {}}
+        offset = get_offset(page, size)
 
-        if genre:
-            query = {"nested": {"path": "genre", "query": {"term": {"genre.uuid": genre}}}}
-
-        films = []
-        from_ = get_es_from_value(page, size)
-
-        try:
-            matched_docs = await self.elastic.search(index="movies", query=query, sort=sort, size=size, from_=from_)
-        except NotFoundError:
-            return None
-
-        for doc in matched_docs["hits"]["hits"]:
-            films.append(doc["_source"])
-
-        return films
+        res = await self.search.search(index="movies", size=size, offset=offset, genre=genre, sort=sort)
+        return res
 
     @cache2
     async def get_films_search(
@@ -62,22 +45,16 @@ class FilmService:
         page: int = 0,
         size: int = 1,
     ) -> Optional[list[dict]]:
-        query = {"multi_match": {"query": search_query, "fields": ["title", "description"]}}
 
-        films = []
-        from_ = get_es_from_value(page, size)
-        try:
-            matched_docs = await self.elastic.search(index="movies", query=query, size=size, from_=from_)
-        except NotFoundError:
-            return None
-        for doc in matched_docs["hits"]["hits"]:
-            films.append(doc["_source"])
-        return films
+        offset = get_offset(page, size)
+
+        res = await self.search.search(index="movies", size=size, offset=offset, search_query=search_query)
+        return res
 
 
 @lru_cache()
 def get_film_service(
     redis: Redis = Depends(get_redis),  # type: ignore
-    elastic: AsyncElasticsearch = Depends(get_elastic),  # type: ignore
+    search: BaseSearch = Depends(Elastic),  # type: ignore
 ) -> FilmService:
-    return FilmService(redis, elastic)
+    return FilmService(redis, search)

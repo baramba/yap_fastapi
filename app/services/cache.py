@@ -1,4 +1,3 @@
-import abc
 import logging
 import os
 from typing import Optional, Union
@@ -6,23 +5,11 @@ from typing import Optional, Union
 import orjson
 from aioredis import Redis
 from db.redis import get_redis
+from services.base import BaseCacheStorage
 
 log = logging.getLogger(os.path.basename(__file__))
 
 TIME_OF_EXPIRE = 60 * 5  # in seconds
-
-
-class BaseCacheStorage:
-
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    async def get_from_storage(self, key: str) -> Union[list, str]:
-        """Прочитать данные из хранилища кэша"""
-
-    @abc.abstractmethod
-    async def put_to_storage(self, key: str, value: Union[list, str]) -> None:
-        """Сохранить данные в хранилище кэша"""
 
 
 class RedisStorage(BaseCacheStorage):
