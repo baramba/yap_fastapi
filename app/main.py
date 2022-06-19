@@ -4,6 +4,7 @@ from api.v1 import films, genres, persons
 from core import config
 from db import elastic, redis
 from elasticsearch import AsyncElasticsearch
+from middleware.auth import AuthProxyMiddleware
 
 from fastapi.applications import FastAPI
 from fastapi.responses import ORJSONResponse
@@ -14,6 +15,8 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
+
+app.add_middleware(AuthProxyMiddleware)
 
 
 @app.on_event("startup")

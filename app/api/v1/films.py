@@ -1,16 +1,17 @@
 import uuid
 from enum import Enum
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import List, Optional, Union
 
 from api.v1.api_utils import APIMessages, Page
+from middleware.auth import AuthPerms
 from models.film import Film, FilmBrief
-from pydantic import BaseModel
 from services.films import FilmService, get_film_service
 
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Query
 from fastapi.params import Depends
+from fastapi.requests import Request
 from fastapi.routing import APIRouter
 
 router = APIRouter()
@@ -63,12 +64,16 @@ async def films_search(
 
 @router.get("/{film_id}", response_model=Film)
 async def film_by_id(
+    request: Request,
     film_id: uuid.UUID,
     commons: CommParams = Depends(),
-) -> Film:
+) -> Union[Film, FilmBrief]:
 
     film = await commons.film_service.get_by_id(str(film_id))
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=APIMessages.FILM_NOT_FOUND)
+    user_perms = request.scope["permissions"]
 
-    return Film(**film)
+    if user_perms and AuthPerms.USER.value in user_perms:
+        return Film(**film)
+    return FilmBrief(**film)

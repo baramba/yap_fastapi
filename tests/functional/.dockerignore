@@ -1,7 +1,7 @@
 /__pycache__
 /.pytest_cache
 /img
-/.docerignore
+/.dockerignore
 /.env
 /.env.example
 /docker-compose.yaml

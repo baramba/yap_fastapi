@@ -13,7 +13,7 @@ log = logging.getLogger(os.path.basename(__file__))
 
 
 @backoff(exception=redis.ConnectionError, retry=3, message={"error": "Ошибка подключения к Redis."}, log=log)
-def check(host, port) -> None:
+def check(host: str, port: int) -> None:
     r = redis.Redis(
         host=host,
         port=port,

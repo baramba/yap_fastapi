@@ -2,6 +2,7 @@ import os
 from logging import config as logging_config
 
 from core.logger import LOGGING
+from pydantic import AnyUrl, BaseSettings, Field, RedisDsn
 
 # Применяем настройки логирования
 logging_config.dictConfig(LOGGING)
@@ -24,3 +25,10 @@ ELASTIC_URL = "{0}://{1}:{2}".format(ELASTIC_PROTO, ELASTIC_HOST, ELASTIC_PORT)
 
 # Корень проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+class Settings(BaseSettings):
+    AUTH_SERVER_URL: AnyUrl = Field(default="http://localhost:5000/api/v1/users/permissions", env="AUTH_SERVER_URL")
+
+
+settings = Settings()
